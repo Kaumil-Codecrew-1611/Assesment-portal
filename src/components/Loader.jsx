@@ -1,6 +1,6 @@
-import React from "react";
+/* import React from "react";
 
-function Loader() {
+const Loader = () => {
   return (
     <div role="status">
       <svg
@@ -22,6 +22,7 @@ function Loader() {
       <span className="sr-only">Loading...</span>
     </div>
   );
-}
+};
 
 export default Loader;
+ */

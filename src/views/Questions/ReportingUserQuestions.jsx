@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axiosInstance from "../../axios/axiosInstance";
 
-const ReportingUserQuestions = ({ user }) => {
+const ReportingUserQuestions = () => {
   const [ratings, setRatings] = useState([]);
   const [reportingUserRatings, setReportingUserRatings] = useState([]);
   const [allQuestions, setAllQuestions] = useState([]);

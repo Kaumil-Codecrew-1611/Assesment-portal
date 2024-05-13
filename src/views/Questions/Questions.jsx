@@ -6,6 +6,9 @@ const Questions = () => {
   const [ratings, setRatings] = useState([]);
   const [allQuestions, setAllQuestions] = useState([]);
   const [reason, setReason] = useState([]);
+  const [ratingErrorMessage, setRatingErrorMessage] = useState(null);
+  const [reasonError, setReasonError] = useState([]);
+  const [firstUnansweredIndex, setFirstUnansweredIndex] = useState(null);
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -15,6 +18,7 @@ const Questions = () => {
       const initialRatings = response.data.questions.map(() => 0);
       setAllQuestions(response.data.questions);
       setRatings(initialRatings);
+      setReasonError(response.data.questions.map(() => false));
     } catch (error) {
       console.log("error", error);
     }
@@ -22,6 +26,9 @@ const Questions = () => {
 
   const addResponses = async (e) => {
     e.preventDefault();
+    if (!validateForm()) {
+      return;
+    }
     try {
       const data = allQuestions.map((question, index) => {
         return {
@@ -38,11 +45,36 @@ const Questions = () => {
     }
   };
 
+  const validateForm = () => {
+    let isValid = true;
+    const index = ratings.findIndex((rating) => rating === 0);
+    setFirstUnansweredIndex(index);
+    if (index !== -1) {
+      setRatingErrorMessage("Please give rating of this questions");
+      isValid = false;
+    } else {
+      setRatingErrorMessage(null);
+    }
+
+    const reasonErrors = [];
+    reason.forEach((r, index) => {
+      if ((ratings[index] === 1 || ratings[index] === 5) && !r) {
+        reasonErrors[index] = true;
+        isValid = false;
+      } else {
+        reasonErrors[index] = false;
+      }
+    });
+    setReasonError(reasonErrors);
+    return isValid;
+  };
+
   const handleStarClick = (selectedRating, questionIndex) => {
     setRatings((prevRatings) => {
       const newRatings = [...prevRatings];
       newRatings[questionIndex] =
         prevRatings[questionIndex] === selectedRating ? 0 : selectedRating;
+      setRatingErrorMessage(null);
       return newRatings;
     });
   };
@@ -53,6 +85,23 @@ const Questions = () => {
       newReason[index] = value;
       return newReason;
     });
+    if (value.trim() !== "") {
+      setReasonError((prevErrors) => {
+        const newErrors = [...prevErrors];
+        newErrors[index] = false;
+        return newErrors;
+      });
+    }
+  };
+
+  const handleReasonBlur = (index) => {
+    if (!reason[index]) {
+      setReasonError((prevErrors) => {
+        const newErrors = [...prevErrors];
+        newErrors[index] = true;
+        return newErrors;
+      });
+    }
   };
 
   useEffect(() => {
@@ -112,9 +161,19 @@ const Questions = () => {
                         onChange={(e) =>
                           handleReasonChange(index, e.target.value)
                         }
+                        onBlur={() => handleReasonBlur(index)}
                       />
+                      {reasonError[index] && (
+                        <span className="text-red-600">
+                          Please provide a reason.
+                        </span>
+                      )}
                     </div>
-                  ) : null}
+                  ) : (
+                    index === firstUnansweredIndex && (
+                      <span className="text-red-600">{ratingErrorMessage}</span>
+                    )
+                  )}
                 </div>
               );
             })}

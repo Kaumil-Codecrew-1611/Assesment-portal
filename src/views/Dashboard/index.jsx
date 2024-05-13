@@ -1,6 +1,7 @@
 import moment from "moment";
 import React, { useEffect, useState } from "react";
-import { FaRegEdit, FaRegEye, FaWpforms } from "react-icons/fa";
+import { FaRegEdit, FaRegEye } from "react-icons/fa";
+import { FaPlus } from "react-icons/fa";
 import { MdAssignment, MdDelete } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../axios/axiosInstance";
@@ -17,12 +18,41 @@ const Dashboard = ({ user }) => {
   const [userListing, setUserListing] = useState([]);
   const [statusOfUser, setStatusOfUser] = useState("");
   const [employeeId, setEmployeeId] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [entry, setEntry] = useState(10);
+  const [sortBy, setSortBy] = useState("");
+  const [sortAscending, setSortAscending] = useState(true);
+  const [sortDueDateAscending, setSortDueDateAscending] = useState(true);
+
+  const sortAssessmentData = (data) => {
+    const sortedData = [...data];
+    if (sortBy === "dueDate") {
+      sortedData.sort((a, b) => {
+        const dateA = moment(a.due_date);
+        const dateB = moment(b.due_date);
+        return sortDueDateAscending ? dateA - dateB : dateB - dateA; // Changed here
+      });
+    } else if (sortBy === "employeeName") {
+      sortedData.sort((a, b) => {
+        const nameA = `${a.assigned_to.firstname} ${a.assigned_to.last_name}`;
+        const nameB = `${b.assigned_to.firstname} ${b.assigned_to.last_name}`;
+        return sortAscending
+          ? nameA.localeCompare(nameB)
+          : nameB.localeCompare(nameA);
+      });
+    }
+    return sortedData;
+  };
 
   const assignData = () => {
     axiosInstance
-      .get(`/assignments?status=${statusOfUser}&employee_id=${employeeId}`)
+      .get(
+        `/assignments?status=${statusOfUser}&employee_id=${employeeId}&page=${page}&limit=${entry}`
+      )
       .then((response) => {
         setAssessmentPortalData(response?.data?.assignments);
+        setTotalPages(response.data.totalPages);
       })
       .catch((error) => {
         console.log("error", error);
@@ -88,6 +118,12 @@ const Dashboard = ({ user }) => {
     setEmployeeId(e.target.value);
   };
 
+  const handlePageChange = (newPage) => {
+    if (newPage > 0 && newPage != page) {
+      setPage(newPage);
+    }
+  };
+
   useEffect(() => {
     assignData();
   }, [statusOfUser, employeeId]);
@@ -95,6 +131,20 @@ const Dashboard = ({ user }) => {
   useEffect(() => {
     allUserListing();
   }, []);
+
+  useEffect(() => {
+    assignData();
+  }, [page, entry]);
+
+  const handleSortByEmployeeName = () => {
+    setSortBy("employeeName");
+    setSortAscending(!sortAscending);
+  };
+
+  const handleSortByDueDate = () => {
+    setSortBy("dueDate");
+    setSortDueDateAscending((prevAscending) => !prevAscending);
+  };
 
   return (
     <>
@@ -115,6 +165,25 @@ const Dashboard = ({ user }) => {
               )}
             </div>
             <div className="flex gap-2 p-2">
+              <div className="w-[10%] flex gap-2 items-center">
+                <div>
+                  <label>Show :-</label>
+                </div>
+                <div>
+                  <select
+                    name="user-list-table_length"
+                    aria-controls="user-list-table"
+                    className="border rounded-lg p-1 bg-slate-100"
+                    onChange={(e) => setEntry(e.target.value)}
+                    value={entry}
+                  >
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="15">15</option>
+                    <option value="20">20</option>
+                  </select>
+                </div>
+              </div>
               <div className="w-[15%]">
                 <select
                   id="status"
@@ -137,9 +206,7 @@ const Dashboard = ({ user }) => {
                     defaultValue=""
                     onChange={handleNameQuery}
                   >
-                    <option value="" disabled>
-                      All Employee
-                    </option>
+                    <option value="">All Employee</option>
                     {userListing &&
                       userListing.map((item, index) => (
                         <option key={index} value={item._id}>
@@ -159,8 +226,27 @@ const Dashboard = ({ user }) => {
                   <th scope="col" className="px-6 py-3">
                     Index
                   </th>
-                  <th scope="col" className="px-6 py-3">
-                    Employee Name
+
+                  <th
+                    onClick={handleSortByEmployeeName}
+                    scope="col"
+                    className="px-6 py-3 flex items-center text-center"
+                  >
+                    <span>Employee Name</span>
+                    <button className="focus:outline-none">
+                      {sortBy === "employeeName" ? (
+                        sortAscending ? (
+                          <span className="text-2xl">&uarr;</span>
+                        ) : (
+                          <span className="text-2xl">&darr;</span>
+                        )
+                      ) : (
+                        <>
+                          <span className="text-2xl">&darr;</span>
+                          <span className="text-2xl">&uarr;</span>
+                        </>
+                      )}
+                    </button>
                   </th>
                   <th scope="col" className="px-6 py-3">
                     Assigned By
@@ -168,8 +254,26 @@ const Dashboard = ({ user }) => {
                   <th scope="col" className="px-6 py-3">
                     Status
                   </th>
-                  <th scope="col" className="px-6 py-3">
-                    Due Date
+                  <th
+                    onClick={handleSortByDueDate}
+                    scope="col"
+                    className="px-6 py-3"
+                  >
+                    <button className="focus:outline-none flex items-center text-center">
+                      <span>Due Date</span>
+                      {sortBy === "dueDate" ? (
+                        sortDueDateAscending ? (
+                          <span className="text-2xl">&uarr;</span>
+                        ) : (
+                          <span className="text-2xl">&darr;</span>
+                        )
+                      ) : (
+                        <>
+                          <span className="text-2xl">&darr;</span>
+                          <span className="text-2xl">&uarr;</span>
+                        </>
+                      )}
+                    </button>
                   </th>
                   <th scope="col" className="px-6 py-3">
                     Action
@@ -177,142 +281,186 @@ const Dashboard = ({ user }) => {
                 </tr>
               </thead>
               <tbody>
-                {assessmentPortalData.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" className="text-center font-bold py-4">
-                      No data found
-                    </td>
-                  </tr>
-                ) : (
-                  assessmentPortalData.map((items, index) => {
-                    return (
-                      <tr
-                        key={items._id + "itemsDiv"}
-                        className="text-black border-bgray-700"
-                      >
-                        <td className="px-6 py-4">{index + 1}</td>
-                        <td className="px-6 py-4">
-                          {items.assigned_to.firstname}{" "}
-                          {items.assigned_to.last_name}
-                        </td>
-                        <td className="px-6 py-4">
-                          {items.assigned_by.firstname}{" "}
-                          {items.assigned_by.last_name}
-                        </td>
-
-                        <td className="px-6 py-4">
-                          <span
-                            className={`inline-flex items-center rounded-md ${getStatusBadgeClassName(
-                              items.status
-                            )} px-2 py-1 font-medium  ring-1 ring-inset capitalize text-sm`}
-                          >
-                            {items.status}
-                          </span>
-                        </td>
-                        <td
-                          className={`px-6 py-4 ${
-                            dueDate(items).isToday
-                              ? "text-red-500 font-bold"
-                              : ""
-                          }`}
+                {sortAssessmentData(assessmentPortalData).length > 0 ? (
+                  sortAssessmentData(assessmentPortalData).map(
+                    (items, index) => {
+                      return (
+                        <tr
+                          key={items._id + "itemsDiv"}
+                          className="text-black border-bgray-700"
                         >
-                          {dueDate(items).date}
-                        </td>
-                        <td className="flex justify-start gap-2 mt-2 items-center">
-                          {permission?.length > 0 &&
-                            permission.includes("Delete Assignment") && (
-                              <button
-                                className="bg-red-100 p-[2px] rounded hover:ring-1 hover:ring-red-800 focus:outline-red-300"
-                                data-toggle="tooltip"
-                                data-placement="top"
-                                title="Delete"
-                                onClick={() => {
-                                  setDeleteId(items._id);
-                                  setModalOpen(true);
-                                }}
-                              >
-                                <MdDelete
-                                  size={24}
-                                  className="text-[#f35f5f] hover:text-red-600"
-                                />
-                              </button>
-                            )}
-                          {user.user.userdata._id === items.assigned_to._id &&
-                            (items.status == "assigned" ||
-                              items.status == "overdue") && (
-                              <button
-                                className="focus:outline-none bg-blue-500 hover:bg-blue-600 p-1"
-                                onClick={() => {
-                                  navigate(`assignment/${items._id}`);
-                                }}
-                              >
-                                <FaWpforms
-                                  title="Submit"
-                                  size={24}
-                                  color="white"
-                                />
-                              </button>
-                            )}
-
-                          {(items.status == "completed" ||
-                            items.status == "submitted") && (
-                            <button
-                              className="focus:outline-none bg-blue-500 hover:bg-blue-600 p-1"
-                              title="View"
-                              onClick={() => {
-                                navigate(`viewAssignment/${items._id}`);
-                              }}
+                          <td className="px-6 py-4">{items.index}</td>
+                          <td className="px-6 py-4">
+                            {items.assigned_to.firstname}
+                            {items.assigned_to.last_name}
+                          </td>
+                          <td className="px-6 py-4">
+                            {items.assigned_by.firstname}
+                            {items.assigned_by.last_name}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span
+                              className={`inline-flex items-center rounded-md ${getStatusBadgeClassName(
+                                items.status
+                              )} px-2 py-1 font-medium  ring-1 ring-inset ring-gray-600 capitalize text-sm`}
                             >
-                              <FaRegEye size={24} color="white" />
-                            </button>
-                          )}
-
-                          {items.assigned_to.reporting_user_id ===
-                            user.user.userdata._id &&
-                            items.status === "submitted" && (
-                              <div>
+                              {items.status}
+                            </span>
+                          </td>
+                          <td
+                            className={`px-6 py-4 ${
+                              dueDate(items).isToday
+                                ? "text-red-500 font-bold"
+                                : ""
+                            }`}
+                          >
+                            {dueDate(items).date}
+                          </td>
+                          <td className="flex justify-start gap-2 mt-2 items-center">
+                            {permission?.length > 0 &&
+                              permission.includes("Delete Assignment") && (
                                 <button
-                                  className="focus:outline-none bg-blue-500 hover:bg-blue-600 p-1"
-                                  title="Reporting User Review"
+                                  className="bg-red-100 p-[2px] rounded hover:ring-1 hover:ring-red-800 focus:outline-red-300"
+                                  data-toggle="tooltip"
+                                  data-placement="top"
+                                  title="Delete"
                                   onClick={() => {
-                                    navigate(
-                                      `reportingUserQuestions/${items._id}`
-                                    );
+                                    setDeleteId(items._id);
+                                    setModalOpen(true);
                                   }}
                                 >
-                                  <MdAssignment size={24} color="white" />
+                                  <MdDelete
+                                    size={24}
+                                    className="text-[#f35f5f] hover:text-red-600"
+                                  />
                                 </button>
-                              </div>
-                            )}
+                              )}
+                            {user.user.userdata._id === items.assigned_to._id &&
+                              (items.status == "assigned" ||
+                                items.status == "overdue") && (
+                                <button
+                                  className="focus:outline-none bg-blue-500 hover:bg-blue-600 p-1"
+                                  onClick={() => {
+                                    navigate(`assignment/${items._id}`);
+                                  }}
+                                >
+                                  <FaPlus
+                                    title="assignment paper"
+                                    size={24}
+                                    color="white"
+                                  />
+                                </button>
+                              )}
 
-                          {items.status === "submitted" &&
-                            items.assigned_to._id ===
-                              user?.user?.userdata?._id && (
-                              <div
-                                className="bg-[#91868636] rounded hover:ring-1 hover:ring-slate-800"
-                                style={{
-                                  paddingBottom: "10px",
-                                  paddingRight: "10px",
-                                  paddingLeft: "10px",
-                                  paddingTop: "8px",
-                                }}
+                            {(items.status == "completed" ||
+                              items.status == "submitted") && (
+                              <button
+                                className="focus:outline-none bg-blue-500 hover:bg-blue-600 p-1"
+                                title="View"
                                 onClick={() => {
-                                  navigate(`edit-user-review/${items._id}`);
+                                  navigate(`viewAssignment/${items._id}`);
                                 }}
                               >
-                                <FaRegEdit
-                                  size={20}
-                                  className="text-slate-600"
-                                />
-                              </div>
+                                <FaRegEye size={24} color="white" />
+                              </button>
                             )}
-                        </td>
-                      </tr>
-                    );
-                  })
+
+                            {items.assigned_to.reporting_user_id ===
+                              user.user.userdata._id &&
+                              items.status === "submitted" && (
+                                <div>
+                                  <button
+                                    className="focus:outline-none bg-blue-500 hover:bg-blue-600 p-1"
+                                    title="Reporting User Review"
+                                    onClick={() => {
+                                      navigate(
+                                        `reportingUserQuestions/${items._id}`
+                                      );
+                                    }}
+                                  >
+                                    <MdAssignment size={24} color="white" />
+                                  </button>
+                                </div>
+                              )}
+
+                            {items.status === "submitted" &&
+                              items.assigned_to._id ===
+                                user?.user?.userdata?._id && (
+                                <div
+                                  className="bg-[#91868636] rounded hover:ring-1 hover:ring-slate-800"
+                                  style={{
+                                    paddingBottom: "10px",
+                                    paddingRight: "10px",
+                                    paddingLeft: "10px",
+                                    paddingTop: "8px",
+                                  }}
+                                  onClick={() => {
+                                    navigate(`edit-user-review/${items._id}`);
+                                  }}
+                                >
+                                  <FaRegEdit
+                                    size={20}
+                                    className="text-slate-600"
+                                  />
+                                </div>
+                              )}
+                          </td>
+                        </tr>
+                      );
+                    }
+                  )
+                ) : (
+                  <tr>
+                    <td colSpan="6" className="px-6 py-4 text-center">
+                      No data found.
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>
+            <hr />
+            <div className="flex justify-end m-2">
+              <ul className="inline-flex -space-x-px text-sm">
+                {page !== 1 && (
+                  <li>
+                    <a
+                      href="#"
+                      onClick={() => handlePageChange(page - 1)}
+                      className="flex items-center justify-center px-4 h-10 ms-0 leading-tight text-gray-500 bg-white border border-e-0 border-gray-300 rounded-s-lg hover:bg-gray-100 hover:text-gray-700"
+                    >
+                      Previous
+                    </a>
+                  </li>
+                )}
+
+                {[...Array(totalPages).keys()].map((num) => (
+                  <li key={num}>
+                    <button
+                      type="button"
+                      onClick={() => handlePageChange(num + 1)}
+                      className={`flex items-center justify-center px-4 h-10 text-black border border-gray-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 focus:outline-none ${
+                        page === num + 1
+                          ? "text-blue-600 border-blue-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 dark:border-gray-700"
+                          : ""
+                      }`}
+                    >
+                      {num + 1}
+                    </button>
+                  </li>
+                ))}
+                {page < totalPages && (
+                  <li>
+                    <a
+                      href="#"
+                      onClick={() => handlePageChange(page + 1)}
+                      className="flex items-center justify-center px-4 h-10 leading-tight text-gray-500 bg-white border border-gray-300 rounded-e-lg hover:bg-gray-100 hover:text-gray-700"
+                    >
+                      Next
+                    </a>
+                  </li>
+                )}
+              </ul>
+            </div>
           </div>
         </div>
       </div>

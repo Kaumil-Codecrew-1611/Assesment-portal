@@ -2,12 +2,13 @@ import React, { useEffect, useState } from "react";
 import axiosInstance from "../../axios/axiosInstance";
 import { Link, useParams } from "react-router-dom";
 
-const Questions = ({ user }) => {
+const Questions = () => {
   const [ratings, setRatings] = useState([]);
   const [allQuestions, setAllQuestions] = useState([]);
   const [reason, setReason] = useState([]);
-  const [employee, setEmaloyee] = useState({});
+  const [employee, setEmployee] = useState({});
   const [reportingUser, setReportingUser] = useState([]);
+  const [reportingUserNames, setReportingUserNames] = useState([]);
   const { id } = useParams();
 
   const allQuestionsListing = async () => {
@@ -25,19 +26,29 @@ const Questions = ({ user }) => {
       const isReportingUser = response.data.responses.some(
         (item) => item.submitted
       );
+      const reportingUserNames = Array.from(
+        new Set(
+          response.data.responses.map(
+            (item) => item.submitted.reporter_id.firstname
+          )
+        )
+      );
       const allReportingResponse =
         isReportingUser &&
         response.data.responses.map((item) =>
           item.submitted ? item.submitted : null
         );
+
       setAllQuestions(allQuestions);
       setRatings(initialRatings);
       setReason(allReasons);
       setReportingUser(allReportingResponse || []);
+      setReportingUserNames(reportingUserNames);
+
       const employeeDetails = response.data.responses.find(
         (item) => item.employee_id
       );
-      setEmaloyee(employeeDetails.employee_id);
+      setEmployee(employeeDetails.employee_id);
     } catch (error) {
       console.log("error", error);
     }
@@ -80,91 +91,95 @@ const Questions = ({ user }) => {
         </div>
         <form>
           <div className="mt-3">
-            {allQuestions.map((question, index) => {
-              return (
-                <div
-                  key={index}
-                  className="border rounded bg-white p-4 shadow-lg my-2"
-                >
-                  <div>
-                    <span className="me-2 text-lg">{index + 1}.</span>
-                    <span className="text-lg">{question.question}</span>
-                  </div>
-                  <div className="mt-2">
-                    <strong>User Review</strong>
-                  </div>
-                  <div className="flex items-center my-2">
-                    {[1, 2, 3, 4, 5].map((starIndex) => (
-                      <svg
-                        key={starIndex}
-                        className={`w-6 h-6 ${
-                          starIndex <= ratings[index]
-                            ? "text-yellow-300"
-                            : "text-gray-300 dark:text-gray-500"
-                        } ms-1`}
-                        aria-hidden="true"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="currentColor"
-                        viewBox="0 0 22 20"
-                      >
-                        <path d="M20.924 7.625a1.523 1.523 0 0 0-1.238-1.044l-5.051-.734-2.259-4.577a1.534 1.534 0 0 0-2.752 0L7.365 5.847l-5.051.734A1.535 1.535 0 0 0 1.463 9.2l3.656 3.563-.863 5.031a1.532 1.532 0 0 0 2.226 1.616L11 17.033l4.518 2.375a1.534 1.534 0 0 0 2.226-1.617l-.863-5.03L20.537 9.2a1.523 1.523 0 0 0 .387-1.575Z" />
-                      </svg>
-                    ))}
-                  </div>
-                  <div>
-                    {(ratings[index] === 1 || ratings[index] === 5) &&
-                    reason[index] ? (
+            {allQuestions.map((question, index) => (
+              <div
+                key={index}
+                className="border rounded bg-white p-4 shadow-lg my-2"
+              >
+                <div>
+                  <span className="me-2 text-lg">{index + 1}.</span>
+                  <span className="text-lg">{question.question}</span>
+                </div>
+                <div className="mt-2">
+                  <strong>{employee.firstname}'s Review</strong>
+                </div>
+                <div className="flex items-center my-2">
+                  {[1, 2, 3, 4, 5].map((starIndex) => (
+                    <svg
+                      key={starIndex}
+                      className={`w-6 h-6 ${
+                        starIndex <= ratings[index]
+                          ? "text-yellow-300"
+                          : "text-gray-300 dark:text-gray-500"
+                      } ms-1`}
+                      aria-hidden="true"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="currentColor"
+                      viewBox="0 0 22 20"
+                    >
+                      <path d="M20.924 7.625a1.523 1.523 0 0 0-1.238-1.044l-5.051-.734-2.259-4.577a1.534 1.534 0 0 0-2.752 0L7.365 5.847l-5.051.734A1.535 1.535 0 0 0 1.463 9.2l3.656 3.563-.863 5.031a1.532 1.532 0 0 0 2.226 1.616L11 17.033l4.518 2.375a1.534 1.534 0 0 0 2.226-1.617l-.863-5.03L20.537 9.2a1.523 1.523 0 0 0 .387-1.575Z" />
+                    </svg>
+                  ))}
+                </div>
+                <div>
+                  {(ratings[index] === 1 || ratings[index] === 5) &&
+                    reason[index] && (
                       <div className="mb-6">
                         <div className="mt-2">
-                          <label htmlFor={`reason-${index}`}>
-                            Employee's reason:
+                          <label
+                            className="font-bold"
+                            htmlFor={`reason-${index}`}
+                          >
+                            {employee.firstname}'s reason:
                           </label>
                         </div>
-                        <span>{reason[index]}</span>
+                        <span className="font-semibold">{reason[index]}</span>
                       </div>
-                    ) : null}
-                  </div>
-                  {reportingUser.length > 0 && (
-                    <>
-                      <hr className="my-4" />
-                      <span>
-                        <strong>Reporting user</strong>
-                      </span>
-                      <div className="flex items-center my-2">
-                        {[1, 2, 3, 4, 5].map((starIndex) => (
-                          <svg
-                            key={starIndex}
-                            className={`w-6 h-6 ${
-                              starIndex <= reportingUser[index]?.response
-                                ? "text-yellow-300"
-                                : "text-gray-300 dark:text-gray-500"
-                            } ms-1`}
-                            aria-hidden="true"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="currentColor"
-                            viewBox="0 0 22 20"
-                          >
-                            <path d="M20.924 7.625a1.523 1.523 0 0 0-1.238-1.044l-5.051-.734-2.259-4.577a1.534 1.534 0 0 0-2.752 0L7.365 5.847l-5.051.734A1.535 1.535 0 0 0 1.463 9.2l3.656 3.563-.863 5.031a1.532 1.532 0 0 0 2.226 1.616L11 17.033l4.518 2.375a1.534 1.534 0 0 0 2.226-1.617l-.863-5.03L20.537 9.2a1.523 1.523 0 0 0 .387-1.575Z" />
-                          </svg>
-                        ))}
-                      </div>
-                      <div>
-                        {reportingUser[index]?.reason ? (
-                          <div className="mb-6">
-                            <div className="mt-2">
-                              <label htmlFor={`reason-${index}`}>
-                                Reporting's reason:
-                              </label>
-                            </div>
-                            <span>{reportingUser[index]?.reason}</span>
-                          </div>
-                        ) : null}
-                      </div>
-                    </>
-                  )}
+                    )}
                 </div>
-              );
-            })}
+                {reportingUser.length > 0 && (
+                  <div>
+                    <hr className="my-4" />
+                    <span>
+                      <strong>{reportingUserNames}'s Review</strong>
+                    </span>
+                    <div className="flex items-center my-2">
+                      {[1, 2, 3, 4, 5].map((starIndex) => (
+                        <svg
+                          key={starIndex}
+                          className={`w-6 h-6 ${
+                            starIndex <= reportingUser[index]?.response
+                              ? "text-yellow-300"
+                              : "text-gray-300 dark:text-gray-500"
+                          } ms-1`}
+                          aria-hidden="true"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="currentColor"
+                          viewBox="0 0 22 20"
+                        >
+                          <path d="M20.924 7.625a1.523 1.523 0 0 0-1.238-1.044l-5.051-.734-2.259-4.577a1.534 1.534 0 0 0-2.752 0L7.365 5.847l-5.051.734A1.535 1.535 0 0 0 1.463 9.2l3.656 3.563-.863 5.031a1.532 1.532 0 0 0 2.226 1.616L11 17.033l4.518 2.375a1.534 1.534 0 0 0 2.226-1.617l-.863-5.03L20.537 9.2a1.523 1.523 0 0 0 .387-1.575Z" />
+                        </svg>
+                      ))}
+                    </div>
+                    <div>
+                      {reportingUser[index]?.reason && (
+                        <div className="mb-6">
+                          <div className="mt-2">
+                            <label
+                              className="text-base font-bold"
+                              htmlFor={`reason-${index}`}
+                            >
+                              {reportingUserNames}'s reason:
+                            </label>
+                          </div>
+                          <span>{reportingUser[index]?.reason}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
           <div>
             <div className="mt-5">
